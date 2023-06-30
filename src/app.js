@@ -52,9 +52,20 @@ app.post('/participants', async (req, res) => {
             time: dayjs().format('HH:mm:ss')
         });
         // status
-        res.sendStatus(201);
+        res.status(201);
     } catch (err) {
-        res.sendStatus(500).send(err.message);
+        res.status(500).send(err.message);
+    }
+
+})
+
+app.get('/participants', async (req, res) => {
+
+    try {
+        const participantsArray = await db.collection('participants').find().toArray();
+        res.status(200).send(participantsArray.map(({ name }) => { return name }));
+    } catch (err) {
+        res.status(500).send(err.message);
     }
 
 })
