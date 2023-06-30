@@ -52,7 +52,7 @@ app.post('/participants', async (req, res) => {
             time: dayjs().format('HH:mm:ss')
         });
         // status
-        res.status(201);
+        res.sendStatus(201);
     } catch (err) {
         res.status(500).send(err.message);
     }
