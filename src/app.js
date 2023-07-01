@@ -57,7 +57,7 @@ app.post('/participants', async (req, res) => {
         res.status(500).send(err.message);
     }
 
-})
+});
 
 app.get('/participants', async (req, res) => {
 
@@ -68,7 +68,45 @@ app.get('/participants', async (req, res) => {
         res.status(500).send(err.message);
     }
 
-})
+});
+
+app.post('/messages', async (req, res) => {
+
+    const fromUser = req.header('user');
+    if (!fromUser) return res.sendStatus(422);
+
+    // joi validation
+    const messageSchema = joi.object({
+        to: joi.string().required(),
+        text: joi.string().required(),
+        type: joi.string().valid('message','private_message').required()
+    });
+    const validation = messageSchema.validate(req.body, { abortEarly: false });
+    if (validation.error) {
+        const errors = validation.error.details.map((detail) => detail.message);
+        return res.status(422).send(errors);
+    }
+
+    // db operations
+    try {
+        // check if fromUser exists in db
+        const participant = await db.collection('participants').findOne({ name: fromUser });
+        if (!participant) return res.sendStatus(422);
+        // add message to collection
+        await db.collection('messages').insertOne({
+            from: fromUser,
+            to: req.body.to,
+            text: req.body.text,
+            type: req.body.type,
+            time: dayjs().format('HH:mm:ss')
+        });
+        // status
+        res.sendStatus(201);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+
+});
 
 // listen
 const PORT = 5000;
