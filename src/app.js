@@ -80,7 +80,7 @@ app.post('/messages', async (req, res) => {
     const messageSchema = joi.object({
         to: joi.string().required(),
         text: joi.string().required(),
-        type: joi.string().valid('message','private_message').required()
+        type: joi.string().valid('message', 'private_message').required()
     });
     const validation = messageSchema.validate(req.body, { abortEarly: false });
     if (validation.error) {
@@ -108,6 +108,41 @@ app.post('/messages', async (req, res) => {
     }
 
 });
+
+app.get('/messages', async (req, res) => {
+
+    // user header
+    const fromUser = req.header('user');
+    if (!fromUser) return res.sendStatus(422);
+
+    // limit query
+    let limit = req.query.limit;
+    if (limit == undefined) {limit = Infinity};
+    const limitSchema = joi.number().min(1).allow(Infinity).required();
+    const limitValidation = limitSchema.validate(limit);
+    if (limitValidation.error) {
+        const error = limitValidation.error.details.map((detail) => detail.message);
+        return res.status(422).send(error);
+    } else {
+        limit = Number(limit);
+    };
+
+    // db operations
+    try {
+        const messagesArray = await db.collection('messages').find({
+            $or: [
+                {type: 'message'},
+                {to: 'Todos'},
+                {type: 'private_message', to: fromUser},
+                {type: 'private_message', from: fromUser}
+            ]
+        }).sort({$natural:-1}).limit(limit).toArray();
+        res.status(200).send(messagesArray);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+
+})
 
 // listen
 const PORT = 5000;
