@@ -117,7 +117,7 @@ app.get('/messages', async (req, res) => {
 
     // limit query
     let limit = req.query.limit;
-    if (limit == undefined) {limit = Infinity};
+    if (limit == undefined) { limit = Infinity };
     const limitSchema = joi.number().min(1).allow(Infinity).required();
     const limitValidation = limitSchema.validate(limit);
     if (limitValidation.error) {
@@ -131,18 +131,41 @@ app.get('/messages', async (req, res) => {
     try {
         const messagesArray = await db.collection('messages').find({
             $or: [
-                {type: 'message'},
-                {to: 'Todos'},
-                {type: 'private_message', to: fromUser},
-                {type: 'private_message', from: fromUser}
+                { type: 'message' },
+                { to: 'Todos' },
+                { type: 'private_message', to: fromUser },
+                { type: 'private_message', from: fromUser }
             ]
-        }).sort({$natural:-1}).limit(limit).toArray();
+        }).sort({ $natural: -1 }).limit(limit).toArray();
         res.status(200).send(messagesArray);
     } catch (err) {
         res.status(500).send(err.message);
     }
 
-})
+});
+
+app.post('/status', async (req, res) => {
+
+    // user header
+    const fromUser = req.header('user');
+    if (!fromUser) return res.sendStatus(404);
+
+    // db operations
+    try {
+        // attemp to update participant data
+        const updateResponse = await db.collection('participants').updateOne(
+            {name: fromUser},
+            {$set: {'lastStatus': Date.now()}}
+        );
+        // check if fromUser exists in db based on db response
+        if (updateResponse.matchedCount == 0) return res.sendStatus(404);
+        // status
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+
+});
 
 // listen
 const PORT = 5000;
