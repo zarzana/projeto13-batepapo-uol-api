@@ -41,7 +41,7 @@ app.post('/participants', async (req, res) => {
         // add user to participants collection
         await db.collection('participants').insertOne({
             name: req.body.name,
-            lastStatus: dayjs().valueOf()
+            lastStatus: Date.now()
         });
         // add login message to messages collection
         await db.collection('messages').insertOne({
@@ -154,8 +154,8 @@ app.post('/status', async (req, res) => {
     try {
         // attemp to update participant data
         const updateResponse = await db.collection('participants').updateOne(
-            {name: fromUser},
-            {$set: {'lastStatus': Date.now()}}
+            { name: fromUser },
+            { $set: { 'lastStatus': Date.now() } }
         );
         // check if fromUser exists in db based on db response
         if (updateResponse.matchedCount == 0) return res.sendStatus(404);
@@ -170,3 +170,32 @@ app.post('/status', async (req, res) => {
 // listen
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// removal of inactive users
+async function removeInactiveUsers() {
+
+    try {
+        // remove inactive users
+        const timeCheck = Date.now() - 10000;
+        const inactiveUsersArray = await db.collection('participants').find({ lastStatus: { $lt: timeCheck } }).toArray();
+        await db.collection('participants').deleteMany({ lastStatus: { $lt: timeCheck } });
+        // add logout message to messages collection
+        if (inactiveUsersArray.lenght > 0) {
+            let insertArray = [];
+            inactiveUsersArray.map(({ name }) => { return name }).forEach(name => {
+                insertArray.push({
+                    from: name,
+                    to: 'Todos',
+                    text: 'sai da sala...',
+                    type: 'status',
+                    time: dayjs().format('HH:mm:ss')
+                });
+            });
+            await db.collection('messages').insertMany(insertArray);
+        }
+    } catch (err) {
+        console.log(err);
+    }
+
+}
+setInterval(removeInactiveUsers, 15000);
