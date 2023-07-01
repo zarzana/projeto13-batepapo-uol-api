@@ -180,7 +180,7 @@ async function removeInactiveUsers() {
         const inactiveUsersArray = await db.collection('participants').find({ lastStatus: { $lt: timeCheck } }).toArray();
         await db.collection('participants').deleteMany({ lastStatus: { $lt: timeCheck } });
         // add logout message to messages collection
-        if (inactiveUsersArray.lenght > 0) {
+        if (Object.keys(inactiveUsersArray).length > 0) {
             let insertArray = [];
             inactiveUsersArray.map(({ name }) => { return name }).forEach(name => {
                 insertArray.push({
