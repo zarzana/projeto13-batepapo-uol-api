@@ -63,7 +63,8 @@ app.get('/participants', async (req, res) => {
 
     try {
         const participantsArray = await db.collection('participants').find().toArray();
-        res.status(200).send(participantsArray.map(({ name }) => { return name }));
+        // res.status(200).send(participantsArray.map(({ name }) => { return name }));
+        res.status(200).send(participantsArray);
     } catch (err) {
         res.status(500).send(err.message);
     }
